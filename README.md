@@ -1,7 +1,7 @@
 # Silkesscoop Deathlink Plugin
-A deathlink plugin for [Silklesscoop by nek5](https://github.com/nek5s/SilklessCoop)
+A deathlink plugin for Silklesscoop by nek5
 
-Nexusmods page [here]()
+Nexusmods page [here](https://www.nexusmods.com/hollowknightsilksong/mods/445)
 
 # Installation 
 * Download Silklesscoop from [nexusmods](https://www.nexusmods.com/hollowknightsilksong/mods/73) or [github](https://github.com/nek5s/SilklessCoop/releases) using the given instructions
