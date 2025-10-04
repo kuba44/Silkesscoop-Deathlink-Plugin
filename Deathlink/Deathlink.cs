@@ -3,12 +3,12 @@ using SilklessLib;
 using System.Collections;
 using UnityEngine;
 
-[BepInPlugin("kuba44.Deathlink", "Deathlink for silklesscoop", "1.1.0")]
+[BepInPlugin("kuba44.Deathlink", "Deathlink for silklesscoop", "1.1.1")]
 [BepInDependency("SilklessLib")]
 public class Deathlink : BaseUnityPlugin
 {
     private bool _canDie = true;
-    private float _deathCooldown = 10f;
+    private float _deathCooldown = 5f;
     private bool _cheatedDeath = false;
 
     private void Awake()
@@ -29,13 +29,21 @@ public class Deathlink : BaseUnityPlugin
 
     private void Update()
     {
-        if (HeroController.instance == null)
+        HeroController hornet = HeroController.instance;
+        if (hornet == null)
             return;
+        PlayerData playerData = hornet.playerData;
 
         if (!_canDie)
             return;
 
-        if (HeroController.instance.playerData.health == 0)
+        if (ModConfig.EnableKillKey && Input.GetKeyDown(ModConfig.KillKey) && !playerData.isInventoryOpen && !playerData.isInvincible)
+        {
+            playerData.TakeHealth(100, false, true);
+            hornet.DamageSelf(1);
+        }
+
+        if (playerData.health == 0)
         {
             LogUtil.LogInfo("You have died", true);
 
@@ -44,17 +52,15 @@ public class Deathlink : BaseUnityPlugin
             StartCoroutine(DeathCooldown(_deathCooldown));
         }
 
-        if (_cheatedDeath && !HeroController.instance.playerData.isInvincible)
+        if (_cheatedDeath && !playerData.isInvincible && !playerData.isInventoryOpen && !playerData.travelling)
         {
-            LogUtil.LogInfo("You have cheated death", true);
+            LogUtil.LogInfo("You have cheated death, now you die", true);
 
-            HeroController.instance.DamageSelf(100);
-            StartCoroutine(DeathCooldown(_deathCooldown));
+            KillPlayer();
 
             _cheatedDeath = false;
         }
     }
-
 
     public class DeathlinkPacket : SilklessPacket
     {
@@ -66,13 +72,15 @@ public class Deathlink : BaseUnityPlugin
         if (!_canDie)
             return;
 
+        PlayerData playerData = HeroController.instance.playerData;
+
         LogUtil.LogInfo($"Player {packet.playerName} has died", true);
 
-        if (HeroController.instance.playerData.isInvincible)
+        if (playerData.isInvincible)
         {
             if (ModConfig.RemoveInvincibility)
             {
-                HeroController.instance.playerData.isInvincible = false;
+                playerData.isInvincible = false;
             }
             else
             {
@@ -81,8 +89,19 @@ public class Deathlink : BaseUnityPlugin
             }
         }
 
-        HeroController.instance.DamageSelf(100);
-        StartCoroutine(DeathCooldown(_deathCooldown));
+        if(playerData.isInventoryOpen)
+        {
+            _cheatedDeath = true;
+            return;
+        }
+
+        if (playerData.travelling)
+        {
+            _cheatedDeath = true;
+            return;
+        }
+
+        KillPlayer();
     }
 
     private void SendDeathlinkPacket()
@@ -100,5 +119,13 @@ public class Deathlink : BaseUnityPlugin
         yield return new WaitForSeconds(cooldown);
 
         _canDie = true;
+    }
+
+    private void KillPlayer()
+    {
+        HeroController.instance.playerData.TakeHealth(100, false, true);
+        HeroController.instance.DamageSelf(1);
+
+        StartCoroutine(DeathCooldown(_deathCooldown));
     }
 }
